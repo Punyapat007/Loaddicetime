@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจับเวลาลูกค้า</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        h1 {
+            color: #FF6B3B;
+            margin-bottom: 20px;
+        }
+        .table-container {
+            margin-bottom: 20px;
+            padding: 20px;
+            width: 90%;
+            max-width: 600px;
+            background-color: #fff;
+            box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            border-left: 8px solid #FF6B3B;
+        }
+        .customer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .customer-row:last-child {
+            border-bottom: none;
+        }
+        .timer {
+            font-weight: bold;
+            color: #FF6B3B;
+        }
+        button {
+            background-color: #FF6B3B;
+            color: white;
+            padding: 6px 12px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+        button:hover {
+            background-color: #e55a30;
+        }
+        .table-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FF6B3B;
+            margin-bottom: 10px;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ระบบจับเวลาลูกค้าแต่ละโต๊ะ</h1>
+    <div id="tables"></div>
+    <button onclick="addTable()">เพิ่มโต๊ะ</button>
+
+    <script>
+        let tableCount = 0;
+        const timers = {};
+
+        function addTable() {
+            tableCount++;
+            const tableId = `table-${tableCount}`;
+            const tableContainer = document.createElement("div");
+            tableContainer.className = "table-container";
+            tableContainer.id = tableId;
+
+            tableContainer.innerHTML = `
+                <h2 class="table-title">โต๊ะ ${tableCount}</h2>
+                <div id="customers-${tableId}"></div>
+                <div class="button-group">
+                    <button onclick="addCustomer('${tableId}')">เพิ่มลูกค้า</button>
+                    <button onclick="startAllTimers('${tableId}')">เริ่มเวลาทุกคน</button>
+                    <button onclick="stopAllTimers('${tableId}')">หยุดเวลาทุกคน</button>
+                    <button onclick="resetAllTimers('${tableId}')">รีเซ็ตเวลาทุกคน</button>
+                </div>
+            `;
+
+            document.getElementById("tables").appendChild(tableContainer);
+            timers[tableId] = { customerCount: 0 };
+        }
+
+        function addCustomer(tableId) {
+            timers[tableId].customerCount++;
+            const customerNumber = timers[tableId].customerCount;
+            const customerId = `${tableId}-customer-${customerNumber}`;
+            const customerRow = document.createElement("div");
+            customerRow.className = "customer-row";
+            customerRow.id = customerId;
+
+            customerRow.innerHTML = `
+                <span>Q${customerNumber}</span>
+                <span class="timer" id="timer-${customerId}">00:00:00</span>
+                <button onclick="startTimer('${customerId}')">เริ่ม</button>
+                <button onclick="stopTimer('${customerId}')">หยุด</button>
+                <button onclick="resetTimer('${customerId}')">รีเซ็ต</button>
+                <button onclick="removeCustomer('${customerId}', '${tableId}')">ลบ</button>
+            `;
+
+            document.getElementById(`customers-${tableId}`).appendChild(customerRow);
+            timers[customerId] = { interval: null, seconds: 0 };
+        }
+
+        function startTimer(customerId) {
+            if (timers[customerId].interval) return;
+
+            timers[customerId].interval = setInterval(() => {
+                timers[customerId].seconds++;
+                document.getElementById(`timer-${customerId}`).innerText = formatTime(timers[customerId].seconds);
+            }, 1000);
+        }
+
+        function stopTimer(customerId) {
+            clearInterval(timers[customerId].interval);
+            timers[customerId].interval = null;
+        }
+
+        function resetTimer(customerId) {
+            stopTimer(customerId);
+            timers[customerId].seconds = 0;
+            document.getElementById(`timer-${customerId}`).innerText = "00:00:00";
+        }
+
+        function removeCustomer(customerId, tableId) {
+            stopTimer(customerId);
+            delete timers[customerId];
+            const customerRow = document.getElementById(customerId);
+            customerRow.parentNode.removeChild(customerRow);
+        }
+
+        function startAllTimers(tableId) {
+            const customers = document.getElementById(`customers-${tableId}`).children;
+            for (let customer of customers) {
+                startTimer(customer.id);
+            }
+        }
+
+        function stopAllTimers(tableId) {
+            const customers = document.getElementById(`customers-${tableId}`).children;
+            for (let customer of customers) {
+                stopTimer(customer.id);
+            }
+        }
+
+        function resetAllTimers(tableId) {
+            const customers = document.getElementById(`customers-${tableId}`).children;
+            for (let customer of customers) {
+                resetTimer(customer.id);
+            }
+        }
+
+        function formatTime(seconds) {
+            const hrs = String(Math.floor(seconds / 3600)).padStart(2, '0');
+            const mins = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+            const secs = String(seconds % 60).padStart(2, '0');
+            return `${hrs}:${mins}:${secs}`;
+        }
+    </script>
+</body>
+</html>
